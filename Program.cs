@@ -17,15 +17,15 @@ var assembly = new PersistedAssemblyBuilder(assemblyName, context.CoreAssembly);
 var module = assembly.DefineDynamicModule("MyModule");
 
 var poiType = module.DefineType("PurchaseOrderItem");
-poiType.DefineProperty("Product", PropertyAttributes.None, context.CoreAssembly.GetType(typeof(string).FullName!), null);
+poiType.DefineField("Product", context.CoreAssembly.GetType(typeof(string).FullName!), FieldAttributes.Public);
 // Omit the creation of getters and setters, and other properties for brevity
-poiType.DefineProperty("Quantity", PropertyAttributes.None, context.CoreAssembly.GetType(typeof(int).FullName!), null);
+poiType.DefineField("Quantity", context.CoreAssembly.GetType(typeof(int).FullName!), FieldAttributes.Public);
 
 var poType = module.DefineType("PurchaseOrder");
-poType.DefineProperty("OrderDate", PropertyAttributes.None, context.CoreAssembly.GetType(typeof(DateTime).FullName!), null);
+poType.DefineField("OrderDate", context.CoreAssembly.GetType(typeof(DateTime).FullName!), FieldAttributes.Public);
 
 // This works. We can use directly the defined types.
-poiType.DefineProperty("PurchaseOrder", PropertyAttributes.None, poType, null);
+poiType.DefineField("PurchaseOrder", poType, FieldAttributes.Public);
 
 // This does not work, because it uses System.Private.CoreLib.dll
 // context.LoadFromAssemblyName(typeof(List<>).Assembly.GetName());
@@ -34,6 +34,11 @@ context.LoadFromAssemblyName(new AssemblyName("System.Collections"));
 
 var listContextType = context.CoreAssembly.GetType(typeof(List<>).FullName!);
 // This will throw System.ArgumentException! The type is not available in MetadataLoadContext, and it fails.
-var listOfPoiType = listContextType.MakeGenericType(poiType);
+var listOfPoiType = Type.MakeGenericSignatureType(listContextType, poiType); //listContextType.MakeGenericType(poiType);
 
-poType.DefineProperty("Items", PropertyAttributes.None, listOfPoiType, null);
+poType.DefineField("Items", listOfPoiType, FieldAttributes.Public);
+
+poType.CreateType();
+poiType.CreateType();
+
+assembly.Save("MyAssembly.dll");
